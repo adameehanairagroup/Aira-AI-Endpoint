@@ -22,7 +22,8 @@ def main():
 
     model = "aira-3-coder"
     if len(sys.argv) > 1:
-        model = sys.argv[1]
+        # Join any fragmented arguments (e.g. 'aira-3- coder' -> 'aira-3-coder')
+        model = "".join(sys.argv[1:]).strip()
     
     print(f"⚡ Active Model: {model}\n")
 

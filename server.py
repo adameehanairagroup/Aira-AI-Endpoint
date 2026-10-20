@@ -99,7 +99,8 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
             "max_length": max_tokens,
             "temperature": temperature,
             "top_p": 0.9,
-            "rep_pen": 1.1
+            "rep_pen": 1.1,
+            "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\n\nUser:", "\n\nHuman:"]
         }
     }
     if target_models:
@@ -127,7 +128,12 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
         if status.get("done", False):
             generations = status.get("generations", [])
             if generations:
-                return generations[0].get("text", "").strip()
+                raw_text = generations[0].get("text", "").strip()
+                # Clean any trailing hallucinated roleplay turns
+                for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\n\nUser:"]:
+                    if stop_tag in raw_text:
+                        raw_text = raw_text.split(stop_tag)[0].strip()
+                return raw_text
             return "No output generated."
     raise Exception("Request timed out waiting for available compute node.")
 
