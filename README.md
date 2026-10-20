@@ -41,8 +41,8 @@ Tired of paying $20/month for AI subscriptions, hitting `429 Too Many Requests` 
 
 ### 1. Clone & Run the Server
 ```bash
-git clone https://github.com/adameehan/aira-api.git
-cd aira-api
+git clone https://github.com/adameehan/Aira-AI-Endpoint.git
+cd Aira-AI-Endpoint
 python3 server.py
 ```
 
