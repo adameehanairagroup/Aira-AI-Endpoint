@@ -63,10 +63,10 @@ SYSTEM_PROMPTS = {
 
 # Backend Swarm Candidate Models
 MODEL_TARGETS = {
-    "aira-3-coder": ["koboldcpp/Qwen2.5-Coder-3B-Instruct", "koboldcpp/Qwen2.5-Coder-7B-Instruct"],
-    "aira-3-ultra": ["google/gemma-4-31b", "koboldcpp/LFM2-8B-A1B-SpeedDemon-GLM-4.7-Flash-Thinking-Instruct-Hybrid"],
+    "aira-3-coder": ["koboldcpp/Qwen2.5-Coder-3B-Instruct", "koboldcpp/Qwen2.5-Coder-7B-Instruct", "koboldcpp/Llama-3.2-1B-Instruct"],
+    "aira-3-ultra": ["google/gemma-4-31b", "koboldcpp/LFM2-8B-A1B-SpeedDemon-GLM-4.7-Flash-Thinking-Instruct-Hybrid", "koboldcpp/Llama-3.2-1B-Instruct"],
     "aira-3-flash": ["koboldcpp/Llama-3.2-1B-Instruct", "koboldcpp/Qwen_Qwen3-0.6B-IQ4_XS", "koboldcpp/debug-gemma-4-E2B-Queen-it-qat-q4_0-unquantized.i1-Q4_K_M"],
-    "aira-creative-x": ["koboldcpp/Llama-3-Lumimaid-8B-v0.1-OAS-GGUF-IQ-Imatrix", "koboldcpp/Goetia-26B-A4B-v1.3-Absolute-Heretic-ARA", "koboldcpp/Angelic_Eclipse-12B"],
+    "aira-creative-x": ["koboldcpp/Llama-3-Lumimaid-8B-v0.1-OAS-GGUF-IQ-Imatrix", "koboldcpp/Goetia-26B-A4B-v1.3-Absolute-Heretic-ARA", "koboldcpp/Angelic_Eclipse-12B", "koboldcpp/Llama-3.2-1B-Instruct"],
     "aira-auto": []
 }
 
