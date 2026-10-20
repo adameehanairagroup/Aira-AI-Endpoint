@@ -41,7 +41,7 @@ Tired of paying $20/month for AI subscriptions, hitting `429 Too Many Requests` 
 
 ### 1. Clone & Run the Server
 ```bash
-git clone https://github.com/adameehan/Aira-AI-Endpoint.git
+git clone https://github.com/adameehanaira/Aira-AI-Endpoint.git
 cd Aira-AI-Endpoint
 python3 server.py
 ```
@@ -145,7 +145,7 @@ python3 cli.py aira-3-coder
 **Adam Eehan**  
 Founder & CEO, **Aira Group of Technology**  
 - Portfolio: [adameehan.vercel.app](https://adameehan.vercel.app)  
-- GitHub: [@adameehan](https://github.com/adameehan)  
+- GitHub: [@adameehanaira](https://github.com/adameehanaira)  
 
 ---
 
