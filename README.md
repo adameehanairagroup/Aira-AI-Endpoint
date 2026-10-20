@@ -1,4 +1,4 @@
-# 🚀 Aira API Gateway (v3.6 Sovereign)
+# 🚀 AIRA GROUP AI MODELS — FREE ENDPOINT FOR DEVELOPERS
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.8+](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
@@ -7,7 +7,7 @@
 [![Rate-Limit: None](https://img.shields.io/badge/Rate--Limit-Bypassed-success.svg)]()
 
 > **Engineered by Adam Eehan (Founder & CEO, Aira Group of Technology)**  
-> High-performance, zero-dependency, 100% rate-limit-free OpenAI-compatible API gateway and model suite.
+> High-performance, zero-dependency, 100% rate-limit-free OpenAI-compatible API gateway and model suite for developers worldwide.
 
 ---
 
