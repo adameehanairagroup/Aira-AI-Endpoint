@@ -5,6 +5,7 @@ Developed by Adam Eehan for Aira Group of Technology
 Zero-dependency, high-performance, rate-limit-free OpenAI-compatible API gateway.
 """
 
+import re
 import json
 import time
 import uuid
@@ -99,8 +100,8 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
             "max_length": max_tokens,
             "temperature": temperature,
             "top_p": 0.9,
-            "rep_pen": 1.1,
-            "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\n\nUser:", "\n\nHuman:"]
+            "rep_pen": 1.18,
+            "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>", "User:"]
         }
     }
     if target_models:
@@ -129,10 +130,12 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
             generations = status.get("generations", [])
             if generations:
                 raw_text = generations[0].get("text", "").strip()
-                # Clean any trailing hallucinated roleplay turns
-                for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\n\nUser:"]:
+                # Clean stop tags
+                for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>", "User:"]:
                     if stop_tag in raw_text:
                         raw_text = raw_text.split(stop_tag)[0].strip()
+                # Clean trailing repetitive emojis/symbols loops
+                raw_text = re.sub(r'([\U00010000-\U0010ffff\u2600-\u27ff\s]){5,}$', '', raw_text).strip()
                 return raw_text
             return "No output generated."
     raise Exception("Request timed out waiting for available compute node.")
