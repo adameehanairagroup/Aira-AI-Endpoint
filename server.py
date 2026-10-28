@@ -398,7 +398,7 @@ print(response.choices[0].message.content)</pre>
             self.send_header("Content-Type", "application/json")
             self._send_cors_headers()
             self.end_headers()
-            self.wfile.write(json.dumps(response_payload, indent=2).encode("utf-8"))
+            self.wfile.write(json.dumps(response_payload, indent=2, ensure_ascii=False).encode("utf-8"))
             return
 
         self.send_response(404)
