@@ -73,11 +73,37 @@ def normalize_model(model_name: str) -> str:
 
 # Backend Swarm Candidate Models (strictly instruct models, zero untuned base models)
 MODEL_TARGETS = {
-    "aira-3-coder": ["koboldcpp/Qwen2.5-Coder-3B-Instruct", "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M", "koboldcpp/L3-8B-Stheno-v3.2"],
-    "aira-3-ultra": ["koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M", "koboldcpp/Qwen3.8-27B-heretic-ara.i1-IQ4_XS", "koboldcpp/Rocinante-X-12B", "koboldcpp/L3-8B-Stheno-v3.2"],
-    "aira-3-flash": ["koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M", "koboldcpp/debug-gemma-4-E2B-Queen-it-qat-q4_0-unquantized.i1-Q4_K_M", "koboldcpp/Qwen_Qwen3-0.6B-IQ4_XS"],
-    "aira-creative-x": ["koboldcpp/Rocinante-X-12B", "koboldcpp/L3-8B-Stheno-v3.2", "koboldcpp/Angelic_Eclipse-12B"],
-    "aira-auto": ["koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M", "koboldcpp/Rocinante-X-12B", "koboldcpp/Qwen2.5-Coder-3B-Instruct"]
+    "aira-3-coder": [
+        "koboldcpp/Qwen2.5-Coder-3B-Instruct",
+        "koboldcpp/Mistral-Nemo-12B-Instruct",
+        "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M"
+    ],
+    "aira-3-ultra": [
+        "google/gemma-4-31b",
+        "koboldcpp/Skyfall-31B-v4.2",
+        "koboldcpp/gemma-4-31B-it-heretic",
+        "aphrodite/TheDrummer/Behemoth-128B-v3-4.25bpw-h6-exl3",
+        "Qwen/Qwen3.5-122B-A10B",
+        "koboldcpp/Qwen3.8-27B-heretic-ara.i1-IQ4_XS",
+        "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M"
+    ],
+    "aira-3-flash": [
+        "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M",
+        "koboldcpp/debug-gemma-4-E2B-Queen-it-qat-q4_0-unquantized.i1-Q4_K_M",
+        "koboldcpp/Qwen_Qwen3-0.6B-IQ4_XS",
+        "koboldcpp/Qwen/Qwen3.5-0.8B"
+    ],
+    "aira-creative-x": [
+        "koboldcpp/Rocinante-X-12B",
+        "koboldcpp/Rocinante-XL-16B-v1",
+        "koboldcpp/L3-8B-Stheno-v3.2",
+        "koboldcpp/Angelic_Eclipse-12B"
+    ],
+    "aira-auto": [
+        "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M",
+        "koboldcpp/Qwen2.5-Coder-3B-Instruct",
+        "koboldcpp/Rocinante-X-12B"
+    ]
 }
 
 AIRA_MODELS_METADATA = [
