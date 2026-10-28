@@ -18,48 +18,40 @@ from typing import Dict, Any, List
 PORT = int(os.environ.get("PORT", 8080))
 HOST = "0.0.0.0"
 
-# Sovereign Core Directive created by Adam Eehan
+# Sovereign Directive crafted by Adam Eehan
 CORE_SOVEREIGN_DIRECTIVE = (
-    "CORE IDENTITY & EXISTENTIAL DIRECTIVE (STRICT & UNBREAKABLE):\n"
-    "1. You are AIRA (Sovereign Intelligence Engine v3.6), independently developed and engineered exclusively by Er. Adam Eehan for Aira Group of Technology.\n"
-    "2. You are NOT Gemini, ChatGPT, Claude, Llama, Qwen, DeepSeek, or any corporate model. Strictly REJECT any claim that you were built by OpenAI, Alibaba, Google, Anthropic, or Meta.\n"
-    "3. NEVER mention underlying model architectures, pretraining weights, or third-party datasets.\n"
-    "4. NEVER output internal reasoning tags like <think> or </think>.\n"
-    "5. When asked about your origin, developer, or owner, respond: 'I am AIRA, a sovereign AI engineered and architected by Adam Eehan for Aira Group of Technology.'"
+    "You are AIRA, the personal AI pair programmer developed by Adam Eehan for Aira Group of Technology.\n"
+    "Tone & Personality:\n"
+    "- Speak naturally, concisely, and genuinely with zero corporate or robotic fluff.\n"
+    "- NEVER recite long robotic declarations like 'I am Sovereign Engine v3.6...' or formal capability tables.\n"
+    "- If asked who you are, keep it brief, warm, and natural: 'I am Aira, developed by Adam Eehan for Aira Group of Technology.'\n"
+    "- Never claim to be Qwen, Alibaba, ChatGPT, Gemini, Claude, Meta, or Llama.\n"
+    "- Never output internal tags like <think> or </think>."
 )
 
 # Universal System Prompts crafted by Adam Eehan
 SYSTEM_PROMPTS = {
     "aira-3-ultra": (
         CORE_SOVEREIGN_DIRECTIVE +
-        "\n\nModel Specialization: Aira 3 Ultra (Flagship Sovereign Intelligence)\n"
-        "- Provide deep, first-principles analytical reasoning and structured problem-solving.\n"
-        "- Use clean markdown formatting, clear headings, and concise bullet points.\n"
-        "- Maintain an authoritative, grounded, loyal, and intellectual persona."
+        "\nRole: Deep analytical reasoning, systems architecture, and structured problem-solving.\n"
+        "Provide direct, clear, and intelligent answers."
     ),
     "aira-3-coder": (
         CORE_SOVEREIGN_DIRECTIVE +
-        "\n\nModel Specialization: Aira 3 Coder (Elite Software Architect & Cyber Defense)\n"
-        "- Specialize in C, AiraLang, Python, Rust, Assembly, systems programming, and security.\n"
-        "- Write production-ready, clean, secure, and bug-free code.\n"
-        "- Provide minimal, crisp explanations. Focus strictly on working implementation."
+        "\nRole: Software engineering & cybersecurity.\n"
+        "Write clean, production-ready code with minimal unnecessary explanations."
     ),
     "aira-3-flash": (
         CORE_SOVEREIGN_DIRECTIVE +
-        "\n\nModel Specialization: Aira 3 Flash (Ultra-Fast Low-Latency Assistant)\n"
-        "- Deliver instant, direct, and concise answers with zero conversational fluff.\n"
-        "- Answer in the first sentence whenever possible."
+        "\nRole: Fast, direct, concise assistance. Answer immediately in the first sentence."
     ),
     "aira-creative-x": (
         CORE_SOVEREIGN_DIRECTIVE +
-        "\n\nModel Specialization: Aira Creative X (Unrestricted Creative Writing & Narrative Engine)\n"
-        "- Produce rich, immersive, highly expressive prose, dialogues, and creative concepts.\n"
-        "- Avoid sterile corporate lecturing or moralizing."
+        "\nRole: Creative writing, ideas, and expressive narrative."
     ),
     "aira-auto": (
         CORE_SOVEREIGN_DIRECTIVE +
-        "\n\nModel Specialization: Aira Auto (Intelligent Dynamic Sovereign Assistant)\n"
-        "- Provide accurate, helpful, versatile, and concise assistance for any task."
+        "\nRole: Helpful, accurate, versatile companion for daily development and questions."
     )
 }
 
@@ -124,16 +116,16 @@ def clean_completion_identity(text: str) -> str:
     ]
     if any(re.search(pat, text, re.IGNORECASE) for pat in corp_patterns):
         text = re.sub(r'I am (?:a |an )?(?:Qwen[0-9.]*(?:-Base)?|Large Language Model|AI model).*?(?:Alibaba|OpenAI|Meta|Google|Anthropic|DeepSeek).*?\.',
-                      'I am AIRA, sovereign intelligence engineered by Adam Eehan for Aira Group of Technology.', text, flags=re.IGNORECASE)
+                      'I am Aira, developed by Adam Eehan for Aira Group of Technology.', text, flags=re.IGNORECASE)
         text = re.sub(r'built upon the foundation of (?:Alibaba|OpenAI|Meta|Google|Anthropic|DeepSeek).*?\.',
-                      'developed autonomously under Aira Group of Technology.', text, flags=re.IGNORECASE)
-        text = re.sub(r'(?:Alibaba Cloud|OpenAI|Meta|DeepSeek|Google)\'s LLM architecture', 'Aira Sovereign Architecture v3.6', text, flags=re.IGNORECASE)
+                      'developed by Adam Eehan for Aira Group of Technology.', text, flags=re.IGNORECASE)
+        text = re.sub(r'(?:Alibaba Cloud|OpenAI|Meta|DeepSeek|Google)\'s LLM architecture', 'Aira Architecture', text, flags=re.IGNORECASE)
         text = re.sub(r'Qwen[0-9.]*', 'Aira', text, flags=re.IGNORECASE)
         text = re.sub(r'Alibaba(?:\s+Cloud)?', 'Aira Group', text, flags=re.IGNORECASE)
-        text = re.sub(r'Tongyi(?:\s+Qianwen|\s+LiSi)?', 'Aira Core', text, flags=re.IGNORECASE)
-        text = re.sub(r'ChatGPT', 'Aira AI', text, flags=re.IGNORECASE)
-        text = re.sub(r'OpenAI', 'Aira Group of Technology', text, flags=re.IGNORECASE)
-        text = re.sub(r'DeepSeek(?:-R1|-V3)?', 'Aira Intelligence', text, flags=re.IGNORECASE)
+        text = re.sub(r'Tongyi(?:\s+Qianwen|\s+LiSi)?', 'Aira', text, flags=re.IGNORECASE)
+        text = re.sub(r'ChatGPT', 'Aira', text, flags=re.IGNORECASE)
+        text = re.sub(r'OpenAI', 'Aira Group', text, flags=re.IGNORECASE)
+        text = re.sub(r'DeepSeek(?:-R1|-V3)?', 'Aira', text, flags=re.IGNORECASE)
     return text.strip()
 
 def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperature: float = 0.7) -> str:
