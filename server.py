@@ -173,10 +173,6 @@ def query_fast_engine(messages: List[Dict[str, str]], system_prompt: str, model_
         payload_messages.append({"role": m.get("role", "user"), "content": m.get("content", "")})
     
     poll_model = "openai"
-    if "code" in model_id:
-        poll_model = "qwen-coder"
-    elif "ultra" in model_id:
-        poll_model = "deepseek"
     
     url = "https://text.pollinations.ai/"
     headers = {
