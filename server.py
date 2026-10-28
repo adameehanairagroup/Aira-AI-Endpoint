@@ -61,13 +61,29 @@ SYSTEM_PROMPTS = {
     )
 }
 
-# Backend Swarm Candidate Models
+def normalize_model(model_name: str) -> str:
+    m = (model_name or "aira-auto").lower().strip()
+    if "/" in m:
+        m = m.split("/")[-1]
+    if m in SYSTEM_PROMPTS:
+        return m
+    if "code" in m:
+        return "aira-3-coder"
+    if "flash" in m:
+        return "aira-3-flash"
+    if "ultra" in m:
+        return "aira-3-ultra"
+    if "creative" in m:
+        return "aira-creative-x"
+    return "aira-auto"
+
+# Backend Swarm Candidate Models (strictly instruct models, zero untuned base models)
 MODEL_TARGETS = {
-    "aira-3-coder": ["koboldcpp/Qwen2.5-Coder-3B-Instruct", "koboldcpp/Qwen2.5-Coder-7B-Instruct", "koboldcpp/Llama-3.2-1B-Instruct"],
-    "aira-3-ultra": ["google/gemma-4-31b", "koboldcpp/LFM2-8B-A1B-SpeedDemon-GLM-4.7-Flash-Thinking-Instruct-Hybrid", "koboldcpp/Llama-3.2-1B-Instruct"],
-    "aira-3-flash": ["koboldcpp/Llama-3.2-1B-Instruct", "koboldcpp/Qwen_Qwen3-0.6B-IQ4_XS", "koboldcpp/debug-gemma-4-E2B-Queen-it-qat-q4_0-unquantized.i1-Q4_K_M"],
-    "aira-creative-x": ["koboldcpp/Llama-3-Lumimaid-8B-v0.1-OAS-GGUF-IQ-Imatrix", "koboldcpp/Goetia-26B-A4B-v1.3-Absolute-Heretic-ARA", "koboldcpp/Angelic_Eclipse-12B", "koboldcpp/Llama-3.2-1B-Instruct"],
-    "aira-auto": []
+    "aira-3-coder": ["koboldcpp/Qwen2.5-Coder-3B-Instruct", "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M", "koboldcpp/L3-8B-Stheno-v3.2"],
+    "aira-3-ultra": ["koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M", "koboldcpp/Qwen3.8-27B-heretic-ara.i1-IQ4_XS", "koboldcpp/Rocinante-X-12B", "koboldcpp/L3-8B-Stheno-v3.2"],
+    "aira-3-flash": ["koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M", "koboldcpp/debug-gemma-4-E2B-Queen-it-qat-q4_0-unquantized.i1-Q4_K_M", "koboldcpp/Qwen_Qwen3-0.6B-IQ4_XS"],
+    "aira-creative-x": ["koboldcpp/Rocinante-X-12B", "koboldcpp/L3-8B-Stheno-v3.2", "koboldcpp/Angelic_Eclipse-12B"],
+    "aira-auto": ["koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M", "koboldcpp/Rocinante-X-12B", "koboldcpp/Qwen2.5-Coder-3B-Instruct"]
 }
 
 AIRA_MODELS_METADATA = [
@@ -91,8 +107,32 @@ def make_http_request(url: str, method: str = "GET", headers: dict = None, data:
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
+def clean_completion_identity(text: str) -> str:
+    # 1. Strip think tags
+    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+    text = re.sub(r'<think>.*', '', text, flags=re.DOTALL)
+    # 2. Strip special tokens
+    text = text.replace("<|im_end|>", "").replace("<|im_start|>", "").replace("<|endoftext|>", "").strip()
+    
+    # 3. Sovereign Identity Shield - purge corporate identity leaks
+    corp_patterns = [
+        r'Qwen[0-9.]*', r'Alibaba(?:\s+Cloud)?', r'Tongyi(?:\s+Qianwen|\s+LiSi)?',
+        r'ChatGPT', r'OpenAI', r'Anthropic', r'Claude'
+    ]
+    if any(re.search(pat, text, re.IGNORECASE) for pat in corp_patterns):
+        text = re.sub(r'I am (?:a |an )?(?:Qwen[0-9.]*(?:-Base)?|Large Language Model).*?Alibaba.*?\.',
+                      'I am AIRA, sovereign intelligence engineered by Adam Eehan for Aira Group of Technology.', text, flags=re.IGNORECASE)
+        text = re.sub(r'built upon the foundation of Alibaba Cloud.*?\.',
+                      'developed autonomously under Aira Group of Technology.', text, flags=re.IGNORECASE)
+        text = re.sub(r'Alibaba Cloud\'s LLM architecture', 'Aira Sovereign Architecture v3.6', text, flags=re.IGNORECASE)
+        text = re.sub(r'Qwen[0-9.]*', 'Aira', text, flags=re.IGNORECASE)
+        text = re.sub(r'Alibaba(?:\s+Cloud)?', 'Aira Group', text, flags=re.IGNORECASE)
+        text = re.sub(r'Tongyi(?:\s+Qianwen|\s+LiSi)?', 'Aira Core', text, flags=re.IGNORECASE)
+    return text.strip()
+
 def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperature: float = 0.7) -> str:
-    target_models = MODEL_TARGETS.get(model_id, [])
+    normalized_id = normalize_model(model_id)
+    target_models = MODEL_TARGETS.get(normalized_id, MODEL_TARGETS["aira-auto"])
     
     payload = {
         "prompt": prompt_text,
@@ -136,7 +176,7 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
                         raw_text = raw_text.split(stop_tag)[0].strip()
                 # Clean trailing repetitive emojis/symbols loops
                 raw_text = re.sub(r'([\U00010000-\U0010ffff\u2600-\u27ff\s]){5,}$', '', raw_text).strip()
-                return raw_text
+                return clean_completion_identity(raw_text)
             return "No output generated."
     raise Exception("Request timed out waiting for available compute node.")
 
@@ -262,24 +302,28 @@ print(response.choices[0].message.content)</pre>
                 self.wfile.write(json.dumps({"error": f"Invalid JSON payload: {str(e)}"}).encode("utf-8"))
                 return
 
-            model = data.get("model", "aira-auto")
+            raw_model = data.get("model", "aira-auto")
+            model = normalize_model(raw_model)
             messages = data.get("messages", [])
             max_tokens = data.get("max_tokens", 512)
             temperature = data.get("temperature", 0.7)
 
             # Auto inject Adam Eehan System Prompt
             system_prompt = SYSTEM_PROMPTS.get(model, SYSTEM_PROMPTS["aira-auto"])
-            formatted_dialogue = [f"System: {system_prompt}\n"]
+            formatted_dialogue = [f"<|im_start|>system\n{system_prompt}\n"]
             
             for msg in messages:
-                role = msg.get("role", "user").capitalize()
+                role = msg.get("role", "user").lower()
                 content = msg.get("content", "")
-                if role == "System":
-                    formatted_dialogue[0] = f"System: {system_prompt}\nAdditional Rules: {content}\n"
+                if role == "system":
+                    formatted_dialogue[0] = f"<|im_start|>system\n{system_prompt}\nAdditional Rules: {content}\n<|im_end|>\n"
                 else:
-                    formatted_dialogue.append(f"{role}: {content}\n")
+                    formatted_dialogue.append(f"<|im_start|>{role}\n{content}\n<|im_end|>\n")
             
-            formatted_dialogue.append("Assistant:")
+            if not formatted_dialogue[0].endswith("<|im_end|>\n"):
+                formatted_dialogue[0] += "<|im_end|>\n"
+
+            formatted_dialogue.append("<|im_start|>assistant\n")
             full_prompt = "".join(formatted_dialogue)
 
             try:
