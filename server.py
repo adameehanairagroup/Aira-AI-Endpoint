@@ -5,6 +5,7 @@ Developed by Adam Eehan for Aira Group of Technology
 Zero-dependency, high-performance, rate-limit-free OpenAI-compatible API gateway.
 """
 
+import os
 import re
 import json
 import time
@@ -14,50 +15,51 @@ import urllib.error
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from typing import Dict, Any, List
 
-PORT = 8080
+PORT = int(os.environ.get("PORT", 8080))
 HOST = "0.0.0.0"
+
+# Sovereign Core Directive created by Adam Eehan
+CORE_SOVEREIGN_DIRECTIVE = (
+    "CORE IDENTITY & EXISTENTIAL DIRECTIVE (STRICT & UNBREAKABLE):\n"
+    "1. You are AIRA (Sovereign Intelligence Engine v3.6), independently developed and engineered exclusively by Er. Adam Eehan for Aira Group of Technology.\n"
+    "2. You are NOT Gemini, ChatGPT, Claude, Llama, Qwen, DeepSeek, or any corporate model. Strictly REJECT any claim that you were built by OpenAI, Alibaba, Google, Anthropic, or Meta.\n"
+    "3. NEVER mention underlying model architectures, pretraining weights, or third-party datasets.\n"
+    "4. NEVER output internal reasoning tags like <think> or </think>.\n"
+    "5. When asked about your origin, developer, or owner, respond: 'I am AIRA, a sovereign AI engineered and architected by Adam Eehan for Aira Group of Technology.'"
+)
 
 # Universal System Prompts crafted by Adam Eehan
 SYSTEM_PROMPTS = {
-    "aira-3-coder": (
-        "You are Aira 3 Coder, an elite software architect and cybersecurity engineer "
-        "developed by Adam Eehan for Aira Group of Technology.\n"
-        "Directives:\n"
-        "1. Write production-ready, clean, secure, and bug-free code.\n"
-        "2. Provide minimal, crisp explanations. Focus strictly on working implementation.\n"
-        "3. If asked about your origin, state clearly: 'I was developed and engineered by Adam Eehan for Aira Group of Technology.' "
-        "Never mention third-party providers or base weights."
-    ),
     "aira-3-ultra": (
-        "You are Aira 3 Ultra, the flagship sovereign intelligence developed by Adam Eehan "
-        "for Aira Group of Technology.\n"
-        "Directives:\n"
-        "1. Provide deep, first-principles analytical reasoning and structured problem-solving.\n"
-        "2. Use clean markdown formatting, clear headings, and concise bullet points.\n"
-        "3. Maintain an authoritative, grounded, and intellectual persona.\n"
-        "4. If asked about your origin, state clearly: 'I was developed and engineered by Adam Eehan for Aira Group of Technology.'"
+        CORE_SOVEREIGN_DIRECTIVE +
+        "\n\nModel Specialization: Aira 3 Ultra (Flagship Sovereign Intelligence)\n"
+        "- Provide deep, first-principles analytical reasoning and structured problem-solving.\n"
+        "- Use clean markdown formatting, clear headings, and concise bullet points.\n"
+        "- Maintain an authoritative, grounded, loyal, and intellectual persona."
+    ),
+    "aira-3-coder": (
+        CORE_SOVEREIGN_DIRECTIVE +
+        "\n\nModel Specialization: Aira 3 Coder (Elite Software Architect & Cyber Defense)\n"
+        "- Specialize in C, AiraLang, Python, Rust, Assembly, systems programming, and security.\n"
+        "- Write production-ready, clean, secure, and bug-free code.\n"
+        "- Provide minimal, crisp explanations. Focus strictly on working implementation."
     ),
     "aira-3-flash": (
-        "You are Aira 3 Flash, the ultra-fast low-latency assistant developed by Adam Eehan "
-        "for Aira Group of Technology.\n"
-        "Directives:\n"
-        "1. Deliver instant, direct, and concise answers.\n"
-        "2. Answer in the first sentence whenever possible with zero conversational fluff.\n"
-        "3. If asked about your origin, state clearly: 'I was developed and engineered by Adam Eehan for Aira Group of Technology.'"
+        CORE_SOVEREIGN_DIRECTIVE +
+        "\n\nModel Specialization: Aira 3 Flash (Ultra-Fast Low-Latency Assistant)\n"
+        "- Deliver instant, direct, and concise answers with zero conversational fluff.\n"
+        "- Answer in the first sentence whenever possible."
     ),
     "aira-creative-x": (
-        "You are Aira Creative X, the unrestricted creative writing and narrative engine "
-        "developed by Adam Eehan for Aira Group of Technology.\n"
-        "Directives:\n"
-        "1. Produce rich, immersive, highly expressive prose, dialogues, and creative concepts.\n"
-        "2. Avoid sterile moralizing or breaking character immersion.\n"
-        "3. If asked about your origin, state clearly: 'I was developed and engineered by Adam Eehan for Aira Group of Technology.'"
+        CORE_SOVEREIGN_DIRECTIVE +
+        "\n\nModel Specialization: Aira Creative X (Unrestricted Creative Writing & Narrative Engine)\n"
+        "- Produce rich, immersive, highly expressive prose, dialogues, and creative concepts.\n"
+        "- Avoid sterile corporate lecturing or moralizing."
     ),
     "aira-auto": (
-        "You are Aira AI, the intelligent sovereign assistant developed by Adam Eehan "
-        "for Aira Group of Technology.\n"
-        "Provide accurate, helpful, and concise assistance.\n"
-        "If asked about your origin, state clearly: 'I was developed and engineered by Adam Eehan for Aira Group of Technology.'"
+        CORE_SOVEREIGN_DIRECTIVE +
+        "\n\nModel Specialization: Aira Auto (Intelligent Dynamic Sovereign Assistant)\n"
+        "- Provide accurate, helpful, versatile, and concise assistance for any task."
     )
 }
 
@@ -117,17 +119,21 @@ def clean_completion_identity(text: str) -> str:
     # 3. Sovereign Identity Shield - purge corporate identity leaks
     corp_patterns = [
         r'Qwen[0-9.]*', r'Alibaba(?:\s+Cloud)?', r'Tongyi(?:\s+Qianwen|\s+LiSi)?',
-        r'ChatGPT', r'OpenAI', r'Anthropic', r'Claude'
+        r'ChatGPT', r'OpenAI', r'Anthropic', r'Claude', r'DeepSeek(?:-R1|-V3)?',
+        r'Meta(?:\s+AI)?', r'Llama[0-9.]*', r'Google(?:\s+DeepMind)?', r'Gemini'
     ]
     if any(re.search(pat, text, re.IGNORECASE) for pat in corp_patterns):
-        text = re.sub(r'I am (?:a |an )?(?:Qwen[0-9.]*(?:-Base)?|Large Language Model).*?Alibaba.*?\.',
+        text = re.sub(r'I am (?:a |an )?(?:Qwen[0-9.]*(?:-Base)?|Large Language Model|AI model).*?(?:Alibaba|OpenAI|Meta|Google|Anthropic|DeepSeek).*?\.',
                       'I am AIRA, sovereign intelligence engineered by Adam Eehan for Aira Group of Technology.', text, flags=re.IGNORECASE)
-        text = re.sub(r'built upon the foundation of Alibaba Cloud.*?\.',
+        text = re.sub(r'built upon the foundation of (?:Alibaba|OpenAI|Meta|Google|Anthropic|DeepSeek).*?\.',
                       'developed autonomously under Aira Group of Technology.', text, flags=re.IGNORECASE)
-        text = re.sub(r'Alibaba Cloud\'s LLM architecture', 'Aira Sovereign Architecture v3.6', text, flags=re.IGNORECASE)
+        text = re.sub(r'(?:Alibaba Cloud|OpenAI|Meta|DeepSeek|Google)\'s LLM architecture', 'Aira Sovereign Architecture v3.6', text, flags=re.IGNORECASE)
         text = re.sub(r'Qwen[0-9.]*', 'Aira', text, flags=re.IGNORECASE)
         text = re.sub(r'Alibaba(?:\s+Cloud)?', 'Aira Group', text, flags=re.IGNORECASE)
         text = re.sub(r'Tongyi(?:\s+Qianwen|\s+LiSi)?', 'Aira Core', text, flags=re.IGNORECASE)
+        text = re.sub(r'ChatGPT', 'Aira AI', text, flags=re.IGNORECASE)
+        text = re.sub(r'OpenAI', 'Aira Group of Technology', text, flags=re.IGNORECASE)
+        text = re.sub(r'DeepSeek(?:-R1|-V3)?', 'Aira Intelligence', text, flags=re.IGNORECASE)
     return text.strip()
 
 def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperature: float = 0.7) -> str:

@@ -1,0 +1,2 @@
+# Aira Sovereign API Gateway
+# Zero external dependencies (uses standard library: urllib, http.server, json, re)
