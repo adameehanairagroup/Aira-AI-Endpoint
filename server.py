@@ -190,8 +190,32 @@ class AiraAPIHandler(BaseHTTPRequestHandler):
         self._send_cors_headers()
         self.end_headers()
 
+    def do_HEAD(self):
+        self.send_response(200)
+        if self.path in ["/health", "/healthz", "/ping"]:
+            self.send_header("Content-Type", "application/json")
+        else:
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+        self._send_cors_headers()
+        self.end_headers()
+
     def do_GET(self):
         global TOTAL_REQUESTS
+        if self.path in ["/health", "/healthz", "/ping"]:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self._send_cors_headers()
+            self.end_headers()
+            resp = {
+                "status": "healthy",
+                "service": "Aira API Gateway",
+                "version": "3.6",
+                "uptime": "online",
+                "timestamp": int(time.time())
+            }
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
         if self.path == "/" or self.path == "/status":
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
