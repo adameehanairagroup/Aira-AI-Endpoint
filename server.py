@@ -71,7 +71,7 @@ def normalize_model(model_name: str) -> str:
         return "aira-creative-x"
     return "aira-auto"
 
-# Backend Swarm Candidate Models (strictly instruct models, zero untuned base models)
+# Backend Swarm Candidate Models (All live swarm models categorised by capability)
 MODEL_TARGETS = {
     "aira-3-coder": [
         "koboldcpp/Qwen2.5-Coder-3B-Instruct",
@@ -79,30 +79,43 @@ MODEL_TARGETS = {
         "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M"
     ],
     "aira-3-ultra": [
+        "aphrodite/TheDrummer/Behemoth-128B-v3-4.25bpw-h6-exl3",
+        "Qwen/Qwen3.5-122B-A10B",
         "google/gemma-4-31b",
         "koboldcpp/Skyfall-31B-v4.2",
         "koboldcpp/gemma-4-31B-it-heretic",
-        "aphrodite/TheDrummer/Behemoth-128B-v3-4.25bpw-h6-exl3",
-        "Qwen/Qwen3.5-122B-A10B",
+        "koboldcpp/Q3.5-BlueStar-v2-27B.i1-IQ4_XS",
         "koboldcpp/Qwen3.8-27B-heretic-ara.i1-IQ4_XS",
+        "wicked-tutu-26b-w8a16",
+        "koboldcpp/Mistral-Nemo-2407-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC",
+        "koboldcpp/Qwen3.5-9B-abliterated.Q4_K_M",
         "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M"
     ],
     "aira-3-flash": [
         "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M",
-        "koboldcpp/debug-gemma-4-E2B-Queen-it-qat-q4_0-unquantized.i1-Q4_K_M",
+        "koboldcpp/gemma-3-270m-it-F16",
         "koboldcpp/Qwen_Qwen3-0.6B-IQ4_XS",
-        "koboldcpp/Qwen/Qwen3.5-0.8B"
+        "koboldcpp/Qwen/Qwen3.5-0.8B",
+        "koboldcpp/debug-gemma-4-E2B-Queen-it-qat-q4_0-unquantized.i1-Q4_K_M",
+        "koboldcpp/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q3_K_P",
+        "koboldcpp/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M",
+        "koboldcpp/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q5_K_P"
     ],
     "aira-creative-x": [
         "koboldcpp/Rocinante-X-12B",
         "koboldcpp/Rocinante-XL-16B-v1",
         "koboldcpp/L3-8B-Stheno-v3.2",
-        "koboldcpp/Angelic_Eclipse-12B"
+        "koboldcpp/L3-8B-Stheno-v3.2-Q5_K_M",
+        "koboldcpp/Angelic_Eclipse-12B",
+        "koboldcpp/mini-magnum-12b-v1.1",
+        "koboldcpp/Gemma-4-E4B-it-Ultra-Uncensored-Heretic"
     ],
     "aira-auto": [
         "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M",
         "koboldcpp/Qwen2.5-Coder-3B-Instruct",
-        "koboldcpp/Rocinante-X-12B"
+        "koboldcpp/Rocinante-X-12B",
+        "koboldcpp/gemma-4-31B-it-heretic",
+        "google/gemma-4-31b"
     ]
 }
 
