@@ -209,6 +209,13 @@ def clean_completion_identity(text: str) -> str:
         text = re.sub(r'OpenAI', 'Aira Group', text, flags=re.IGNORECASE)
         text = re.sub(r'DeepSeek(?:-R1|-V3)?', 'Aira', text, flags=re.IGNORECASE)
         text = re.sub(r'Google(?:\s+DeepMind)?', 'Aira Group of Technology', text, flags=re.IGNORECASE)
+
+    # Strip pseudo-tool calls and leaked hallucinated invocation syntax
+    text = re.sub(r'call:(?:ai_sdk:)?\w+(\{[^`{\n]*)?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\{find_string:\s*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\{description:\s*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'([^\n])(```[a-zA-Z0-9_-]*\n)', r'\1\n\n\2', text)
+
     return text.strip()
 
 def query_aira_core_local(prompt_text: str, max_tokens: int = 64) -> Optional[str]:
