@@ -267,10 +267,13 @@ def is_generation_incomplete(text: str) -> bool:
         return True
     return False
 
+AI_HORDE_API_KEY = os.environ.get("AI_HORDE_API_KEY", "f183aa1d-d375-4430-9599-372529b26a93")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+
 def query_single_pass(prompt_text: str, target_models: List[str], max_length: int = 480, temperature: float = 0.7) -> Optional[str]:
     submit_headers = {
         "Content-Type": "application/json",
-        "apikey": "0000000000",
+        "apikey": AI_HORDE_API_KEY,
         "Client-Agent": "AiraSec:1.0:admin@aira.group",
         "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36"
     }
@@ -345,6 +348,46 @@ def query_single_pass(prompt_text: str, target_models: List[str], max_length: in
     except Exception:
         pass
 
+    return None
+
+def query_openrouter_free(messages: List[Dict[str, str]], max_tokens: int = 4096, model: str = "aira-3-coder") -> Optional[str]:
+    """Decentralized multi-provider swarm via OpenRouter Free tier (up to 4,096 tokens)."""
+    api_key = OPENROUTER_API_KEY or os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        return None
+
+    submit_url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+        "HTTP-Referer": "https://aira.group",
+        "X-Title": "Aira Sovereign AI"
+    }
+
+    target_model = "qwen/qwen-2.5-coder-32b-instruct:free" if "code" in model else "meta-llama/llama-3.3-70b-instruct:free"
+
+    system_prompt = SYSTEM_PROMPTS.get(model, SYSTEM_PROMPTS["aira-3-coder"])
+    or_messages = [{"role": "system", "content": system_prompt}]
+    for m in messages:
+        if m.get("role") != "system" and m.get("content"):
+            or_messages.append({"role": m.get("role", "user"), "content": m.get("content", "")})
+
+    payload = {
+        "model": target_model,
+        "messages": or_messages,
+        "max_tokens": min(max(max_tokens, 512), 4096),
+        "temperature": 0.7
+    }
+
+    try:
+        req = urllib.request.Request(submit_url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            if content and content.strip():
+                return clean_completion_identity(content.strip())
+    except Exception:
+        pass
     return None
 
 def query_pollinations(messages: List[Dict[str, str]], max_tokens: int = 2048, model: str = "aira-3-coder") -> Optional[str]:
@@ -1084,13 +1127,22 @@ print(response.choices[0].message.content)</code></pre>
 
             completion_text = None
 
-            # Option 1: Native aira-core local SIMD execution if explicitly targeted or requested
+            # Tier 1: Native aira-core local SIMD execution if explicitly targeted or requested
             if model == "aira-core" and last_user_prompt:
                 local_res = query_aira_core_local(last_user_prompt, max_tokens=min(max_tokens, 64))
                 if local_res:
                     completion_text = local_res
 
-            # Option 2: High-Capacity Zero-Key Coding Engine for aira-3-coder or coding queries (up to 2048 tokens)
+            # Tier 2: OpenRouter Free Swarm Mesh (4,096 tokens) if API key configured
+            if not completion_text:
+                try:
+                    or_res = query_openrouter_free(messages, max_tokens=max_tokens, model=model)
+                    if or_res:
+                        completion_text = or_res
+                except Exception:
+                    pass
+
+            # Tier 3: High-Capacity Zero-Key Coding Engine for aira-3-coder or coding queries (up to 2048 tokens)
             is_coding_query = (
                 model == "aira-3-coder" or
                 any(k in last_user_prompt.lower() for k in [
@@ -1108,7 +1160,7 @@ print(response.choices[0].message.content)</code></pre>
                 except Exception:
                     pass
 
-            # Option 3: Decentralized Sovereign Swarm Engine (AI Horde with multi-turn continuation)
+            # Tier 4: Decentralized Sovereign Swarm Engine (AI Horde with Adam Eehan Key & multi-turn continuation)
             if not completion_text:
                 system_prompt = SYSTEM_PROMPTS.get(model, SYSTEM_PROMPTS["aira-sec"])
                 formatted_dialogue = [f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n"]
