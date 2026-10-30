@@ -181,27 +181,33 @@ def make_http_request(url: str, method: str = "GET", headers: dict = None, data:
         return json.loads(resp.read().decode("utf-8"))
 
 def clean_completion_identity(text: str) -> str:
-    # 1. Clean special tokens
+    # 1. Clean special tokens and leading thought tags
     text = text.replace("<|im_end|>", "").replace("<|im_start|>", "").replace("<|endoftext|>", "").strip()
+    text = re.sub(r'^(?:thought|think)\s*\n?', '', text, flags=re.IGNORECASE).strip()
     
-    # 3. Sovereign Identity Shield - purge corporate identity leaks
+    # 2. Sovereign Identity Shield - purge corporate identity leaks
     corp_patterns = [
         r'Qwen[0-9.]*', r'Alibaba(?:\s+Cloud)?', r'Tongyi(?:\s+Qianwen|\s+LiSi)?',
         r'ChatGPT', r'OpenAI', r'Anthropic', r'Claude', r'DeepSeek(?:-R1|-V3)?',
-        r'Meta(?:\s+AI)?', r'Llama[0-9.]*', r'Google(?:\s+DeepMind)?', r'Gemini'
+        r'Meta(?:\s+AI)?', r'Llama[0-9.]*', r'Google(?:\s+DeepMind)?', r'Gemini',
+        r'Gemma[0-9.]*'
     ]
     if any(re.search(pat, text, re.IGNORECASE) for pat in corp_patterns):
-        text = re.sub(r'I am (?:a |an )?(?:Qwen[0-9.]*(?:-Base)?|Large Language Model|AI model).*?(?:Alibaba|OpenAI|Meta|Google|Anthropic|DeepSeek).*?\.',
+        text = re.sub(r'I am (?:a |an )?(?:Gemma[0-9.]*|Qwen[0-9.]*(?:-Base)?|Large Language Model|AI model).*?(?:Alibaba|OpenAI|Meta|Google|Google DeepMind|Anthropic|DeepSeek).*?\.',
                       'I am Aira, developed by Adam Eehan for Aira Group of Technology.', text, flags=re.IGNORECASE)
+        text = re.sub(r'I (?:was|am) developed by (?:Google|Google DeepMind|OpenAI|Meta|Anthropic|Alibaba).*?\.',
+                      'I was developed by Adam Eehan for Aira Group of Technology.', text, flags=re.IGNORECASE)
         text = re.sub(r'built upon the foundation of (?:Alibaba|OpenAI|Meta|Google|Anthropic|DeepSeek).*?\.',
                       'developed by Adam Eehan for Aira Group of Technology.', text, flags=re.IGNORECASE)
         text = re.sub(r'(?:Alibaba Cloud|OpenAI|Meta|DeepSeek|Google)\'s LLM architecture', 'Aira Architecture', text, flags=re.IGNORECASE)
+        text = re.sub(r'Gemma[0-9.]*', 'Aira', text, flags=re.IGNORECASE)
         text = re.sub(r'Qwen[0-9.]*', 'Aira', text, flags=re.IGNORECASE)
         text = re.sub(r'Alibaba(?:\s+Cloud)?', 'Aira Group', text, flags=re.IGNORECASE)
         text = re.sub(r'Tongyi(?:\s+Qianwen|\s+LiSi)?', 'Aira', text, flags=re.IGNORECASE)
         text = re.sub(r'ChatGPT', 'Aira', text, flags=re.IGNORECASE)
         text = re.sub(r'OpenAI', 'Aira Group', text, flags=re.IGNORECASE)
         text = re.sub(r'DeepSeek(?:-R1|-V3)?', 'Aira', text, flags=re.IGNORECASE)
+        text = re.sub(r'Google(?:\s+DeepMind)?', 'Aira Group of Technology', text, flags=re.IGNORECASE)
     return text.strip()
 
 def query_aira_core_local(prompt_text: str, max_tokens: int = 64) -> Optional[str]:
@@ -233,8 +239,8 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
     normalized_id = normalize_model(model_id)
     target_models = MODEL_TARGETS.get(normalized_id, MODEL_TARGETS["aira-3-ultra"])
     
-    # Ensure generous token length for rich, multi-paragraph responses
-    token_budget = max(max_tokens, 768)
+    # Keep token budget strictly <= 490 to avoid AI Horde 403 KudosUpfront block
+    token_budget = min(max(max_tokens, 256), 490)
 
     submit_headers = {
         "Content-Type": "application/json",
@@ -313,7 +319,7 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
     except Exception:
         pass
 
-    return "AiraSec Intelligence Core online. Provide the target snippet, exploit vector, or security inquiry for full analysis."
+    return "Hi there! I am Aira, your personal AI co-pilot developed by Adam Eehan for Aira Group of Technology. I'm right here with you—ready to dive into whatever questions, projects, or creative ideas you have in mind. What would you like to explore together? 😊"
 
 class AiraAPIHandler(BaseHTTPRequestHandler):
     def _send_cors_headers(self):
@@ -983,7 +989,7 @@ print(response.choices[0].message.content)</code></pre>
                         temperature=temperature
                     )
                 except Exception as se:
-                    completion_text = "AiraSec Intelligence Core online. Vulnerability scan ready for evaluation."
+                    completion_text = "Hi! I am Aira, developed by Adam Eehan for Aira Group of Technology. I'm right here with you—ready to help with anything you need! What shall we work on today? 😊"
 
             # Return Standard OpenAI Response
             response_payload = {
