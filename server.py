@@ -347,6 +347,46 @@ def query_single_pass(prompt_text: str, target_models: List[str], max_length: in
 
     return None
 
+def query_pollinations(messages: List[Dict[str, str]], max_tokens: int = 2048, model: str = "aira-3-coder") -> Optional[str]:
+    """High-capacity zero-key coding engine: delivers up to 2,048 tokens per request."""
+    submit_url = "https://text.pollinations.ai/openai/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36"
+    }
+
+    system_prompt = SYSTEM_PROMPTS.get(model, SYSTEM_PROMPTS["aira-3-coder"])
+    poll_messages = [{"role": "system", "content": system_prompt}]
+    for m in messages:
+        role = m.get("role", "user")
+        content = m.get("content", "")
+        if role != "system" and content:
+            poll_messages.append({"role": role, "content": content})
+
+    payload = {
+        "model": "openai-fast",
+        "messages": poll_messages,
+        "max_tokens": min(max(max_tokens, 512), 2048)
+    }
+
+    try:
+        req = urllib.request.Request(submit_url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=28) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            if content and content.strip():
+                clean = clean_completion_identity(content.strip())
+                fences = len(re.findall(r'```', clean))
+                if fences % 2 != 0:
+                    lower = clean.lower()
+                    if ("<html" in lower or "<!doctype html" in lower) and "</html>" not in lower:
+                        clean += "\n    </div>\n</body>\n</html>"
+                    clean += "\n```"
+                return clean
+    except Exception:
+        pass
+    return None
+
 def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperature: float = 0.7) -> str:
     normalized_id = normalize_model(model_id)
     target_models = MODEL_TARGETS.get(normalized_id, MODEL_TARGETS["aira-3-ultra"])
@@ -1050,7 +1090,25 @@ print(response.choices[0].message.content)</code></pre>
                 if local_res:
                     completion_text = local_res
 
-            # Option 2: Decentralized Sovereign Swarm Engine
+            # Option 2: High-Capacity Zero-Key Coding Engine for aira-3-coder or coding queries (up to 2048 tokens)
+            is_coding_query = (
+                model == "aira-3-coder" or
+                any(k in last_user_prompt.lower() for k in [
+                    "code", "html", "website", "python", "script", "app", "function",
+                    "portfolio", "css", "component", "react", "program", "draw", "triangle",
+                    "algorithm", "backend", "frontend", "api", "database", "sql"
+                ])
+            )
+
+            if not completion_text and is_coding_query:
+                try:
+                    poll_res = query_pollinations(messages, max_tokens=max_tokens, model=model)
+                    if poll_res:
+                        completion_text = poll_res
+                except Exception:
+                    pass
+
+            # Option 3: Decentralized Sovereign Swarm Engine (AI Horde with multi-turn continuation)
             if not completion_text:
                 system_prompt = SYSTEM_PROMPTS.get(model, SYSTEM_PROMPTS["aira-sec"])
                 formatted_dialogue = [f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n"]
