@@ -1185,15 +1185,16 @@ print(response.choices[0].message.content)</code></pre>
 
             completion_text = None
 
-            # Detect coding, algorithmic, and complex engineering requests
+            # Detect coding, algorithmic, cybersecurity recon, and complex engineering requests
             is_coding_query = (
-                model == "aira-3-coder" or
+                model in ["aira-3-coder", "aira-sec"] or
                 any(k in last_user_prompt.lower() for k in [
                     "code", "html", "website", "python", "script", "app", "function",
                     "portfolio", "css", "component", "react", "program", "draw", "triangle",
                     "algorithm", "backend", "frontend", "api", "database", "sql", "bug", "fix",
                     "class", "def ", "import ", "javascript", "typescript", "c++", "rust", "java",
-                    "solve", "math", "derive", "proof", "debug", "refactor"
+                    "solve", "math", "derive", "proof", "debug", "refactor",
+                    "audit", "security", "recon", "vulnerability", "pentest", "headers", "cve"
                 ])
             )
 
