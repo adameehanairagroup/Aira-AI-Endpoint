@@ -66,8 +66,11 @@ SYSTEM_PROMPTS = {
     ),
     "aira-3-coder": (
         CORE_SOVEREIGN_DIRECTIVE +
-        "\nRole: Software engineering & system programming.\n"
-        "Write clean, production-ready code with complete, elegant implementations."
+        "\nRole: Specialized Software Engineering, UI Architecture & Systems Code.\n"
+        "Directives:\n"
+        "- When asked to build a website, web page, portfolio, or UI: jump directly into the implementation with a brief 1-line intro so your entire token budget is dedicated to the code.\n"
+        "- For HTML web apps, always include Tailwind CSS CDN (<script src=\"https://cdn.tailwindcss.com\"></script>) for compact, ultra-modern styling without writing bloated manual CSS.\n"
+        "- Write self-contained, 100% complete files from <!DOCTYPE html> down to </html>. Never truncate, omit sections, or leave code cut off in the middle."
     ),
     "aira-3-flash": (
         CORE_SOVEREIGN_DIRECTIVE +
@@ -243,13 +246,20 @@ def query_aira_core_local(prompt_text: str, max_tokens: int = 64) -> Optional[st
                 pass
     return None
 
-def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperature: float = 0.7) -> str:
-    normalized_id = normalize_model(model_id)
-    target_models = MODEL_TARGETS.get(normalized_id, MODEL_TARGETS["aira-3-ultra"])
-    
-    # Keep token budget strictly <= 490 to avoid AI Horde 403 KudosUpfront block
-    token_budget = min(max(max_tokens, 256), 490)
+def is_generation_incomplete(text: str) -> bool:
+    if not text:
+        return False
+    # Check if an unclosed code block exists
+    fences = len(re.findall(r'```', text))
+    if fences % 2 != 0:
+        return True
+    # Check if an HTML document was started without closing </html>
+    lower = text.lower()
+    if ("<html" in lower or "<!doctype html" in lower) and "</html>" not in lower:
+        return True
+    return False
 
+def query_single_pass(prompt_text: str, target_models: List[str], max_length: int = 480, temperature: float = 0.7) -> Optional[str]:
     submit_headers = {
         "Content-Type": "application/json",
         "apikey": "0000000000",
@@ -262,7 +272,7 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
     payload = {
         "prompt": prompt_text,
         "params": {
-            "max_length": token_budget,
+            "max_length": max_length,
             "temperature": temperature,
             "top_p": 0.9,
             "rep_pen": 1.15,
@@ -277,31 +287,31 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
     except Exception:
         req_id = None
 
-    # Step 2: Poll status with quick failover to dynamic open swarm if queue > 10s
+    # Step 2: Poll status with quick failover
     if req_id:
         status_url = f"https://aihorde.net/api/v2/generate/text/status/{req_id}"
         start_time = time.time()
-        while time.time() - start_time < 35:
-            time.sleep(1.8)
+        while time.time() - start_time < 30:
+            time.sleep(1.5)
             try:
                 status = make_http_request(status_url, headers=submit_headers)
                 if status.get("done", False):
                     generations = status.get("generations", [])
                     if generations:
-                        raw_text = generations[0].get("text", "").strip()
+                        raw_text = generations[0].get("text", "")
                         for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]:
                             if stop_tag in raw_text:
-                                raw_text = raw_text.split(stop_tag)[0].strip()
-                        raw_text = re.sub(r'([\U00010000-\U0010ffff\u2600-\u27ff\s]){5,}$', '', raw_text).strip()
-                        return clean_completion_identity(raw_text)
+                                raw_text = raw_text.split(stop_tag)[0]
+                        raw_text = re.sub(r'([\U00010000-\U0010ffff\u2600-\u27ff\s]){5,}$', '', raw_text)
+                        return raw_text
             except Exception:
                 pass
 
-    # Step 3: Fast Failover: Open dynamic swarm dispatch (matches ANY available active node in ~4s)
+    # Step 3: Fast Failover: Open dynamic swarm dispatch
     open_payload = {
         "prompt": prompt_text,
         "params": {
-            "max_length": token_budget,
+            "max_length": max_length,
             "temperature": temperature,
             "top_p": 0.9,
             "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]
@@ -313,21 +323,53 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
         if open_id:
             open_status_url = f"https://aihorde.net/api/v2/generate/text/status/{open_id}"
             t_open = time.time()
-            while time.time() - t_open < 25:
+            while time.time() - t_open < 20:
                 time.sleep(1.5)
                 ostatus = make_http_request(open_status_url, headers=submit_headers)
                 if ostatus.get("done", False):
                     gens = ostatus.get("generations", [])
                     if gens:
-                        raw_text = gens[0].get("text", "").strip()
+                        raw_text = gens[0].get("text", "")
                         for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]:
                             if stop_tag in raw_text:
-                                raw_text = raw_text.split(stop_tag)[0].strip()
-                        return clean_completion_identity(raw_text)
+                                raw_text = raw_text.split(stop_tag)[0]
+                        return raw_text
     except Exception:
         pass
 
-    return "Hi there! I am Aira, your personal AI co-pilot developed by Adam Eehan for Aira Group of Technology. I'm right here with you—ready to dive into whatever questions, projects, or creative ideas you have in mind. What would you like to explore together? 😊"
+    return None
+
+def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperature: float = 0.7) -> str:
+    normalized_id = normalize_model(model_id)
+    target_models = MODEL_TARGETS.get(normalized_id, MODEL_TARGETS["aira-3-ultra"])
+    
+    token_budget = min(max(max_tokens, 256), 480)
+
+    # Pass 1: Initial generation
+    accumulated_text = query_single_pass(prompt_text, target_models, max_length=token_budget, temperature=temperature)
+    if not accumulated_text or not accumulated_text.strip():
+        return "Hi there! I am Aira, your personal AI co-pilot developed by Adam Eehan for Aira Group of Technology. I'm right here with you—ready to dive into whatever questions, projects, or creative ideas you have in mind. What would you like to explore together? 😊"
+
+    # Pass 2 & 3: Seamless continuation if code or markup was truncated mid-stream
+    continuation_passes = 0
+    while is_generation_incomplete(accumulated_text) and continuation_passes < 2:
+        continuation_passes += 1
+        cont_prompt = prompt_text + accumulated_text
+        cont_text = query_single_pass(cont_prompt, target_models, max_length=420, temperature=temperature)
+        if cont_text and cont_text.strip():
+            accumulated_text += cont_text
+        else:
+            break
+
+    # Graceful closure if still unclosed after passes
+    fences = len(re.findall(r'```', accumulated_text))
+    if fences % 2 != 0:
+        lower = accumulated_text.lower()
+        if ("<html" in lower or "<!doctype html" in lower) and "</html>" not in lower:
+            accumulated_text += "\n    </div>\n</body>\n</html>"
+        accumulated_text += "\n```"
+
+    return clean_completion_identity(accumulated_text)
 
 class AiraAPIHandler(BaseHTTPRequestHandler):
     def _send_cors_headers(self):
