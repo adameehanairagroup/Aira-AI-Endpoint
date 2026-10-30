@@ -1072,7 +1072,7 @@ print(response.choices[0].message.content)</code></pre>
             raw_model = data.get("model", "aira-sec")
             model = normalize_model(raw_model)
             messages = data.get("messages", [])
-            max_tokens = data.get("max_tokens", 512)
+            max_tokens = data.get("max_tokens") or 2048
             temperature = data.get("temperature", 0.7)
 
             # Extract user prompt string for potential local engine
