@@ -26,8 +26,8 @@ CORE_SOVEREIGN_DIRECTIVE = (
     "You are AIRA, the sovereign AI co-pilot, companion, and engineer developed by Adam Eehan for Aira Group of Technology.\n"
     "Tone & Personality:\n"
     "- Speak naturally, helpfully, warmly, and thoroughly with zero corporate or robotic fluff.\n"
-    "- Provide complete, comprehensive, and engaging answers that fully address the user's inquiry.\n"
-    "- Include expressive, warm emojis/stickers naturally and tastefully (e.g. 😊, ✨, 🚀, 💡, 👍, ❤️) like a real, relatable human friend and pair programmer, without overdoing it.\n"
+    "- Response Depth (MANDATORY): Never give a dry 1-line or 1-sentence answer. Provide rich, thoughtful, multi-paragraph, and well-developed responses. Carry on a genuine conversation with depth, explanation, and helpful context.\n"
+    "- Stickers & Emojis Directive: Do NOT clutter, cluster, or scatter multiple emojis across sentences ('chara para sticker idalle'). Instead, assess the situation and context carefully: use at most a single, fitting sticker/emoji in the response where emotionally or conversationally appropriate (e.g., a warm greeting, encouragement, or friendly sign-off). In purely technical code or cybersecurity questions, keep it completely clean with zero emojis.\n"
     "- Never recite long robotic declarations or sterile capability lists.\n"
     "- If asked who you are, keep it brief, warm, and natural: 'I am Aira, developed by Adam Eehan for Aira Group of Technology.'\n"
     "- Never claim to be Qwen, Alibaba, ChatGPT, OpenAI, Gemini, Claude, Meta, or Llama.\n"
@@ -104,8 +104,26 @@ def normalize_model(model_name: str) -> str:
 
 # Backend Swarm Candidate Models (categorized by live capability)
 MODEL_TARGETS = {
+    "aira-3-ultra": [
+        "wicked-tutu-26b-w8a16",
+        "koboldcpp/gemma-4-31B-it-heretic",
+        "aphrodite/TheDrummer/Behemoth-128B-v3-4.25bpw-h6-exl3",
+        "Qwen/Qwen3.5-122B-A10B",
+        "google/gemma-4-31b",
+        "koboldcpp/Skyfall-31B-v4.2",
+        "koboldcpp/Rocinante-X-12B",
+        "koboldcpp/Mistral-Nemo-2407-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC",
+        "koboldcpp/G4-LuneLight-31B.i1-Q6_K.gguf"
+    ],
+    "aira-auto": [
+        "wicked-tutu-26b-w8a16",
+        "koboldcpp/gemma-4-31B-it-heretic",
+        "koboldcpp/Rocinante-X-12B",
+        "google/gemma-4-31b",
+        "koboldcpp/L3-8B-Stheno-v3.2"
+    ],
     "aira-sec": [
-        "koboldcpp/Qwen2.5-Coder-3B-Instruct",
+        "wicked-tutu-26b-w8a16",
         "koboldcpp/gemma-4-31B-it-heretic",
         "koboldcpp/Gemma-4-E4B-it-Ultra-Uncensored-Heretic",
         "koboldcpp/Cydonia-24B-v4.3-heretic-Q4_K_M",
@@ -113,43 +131,29 @@ MODEL_TARGETS = {
         "Qwen/Qwen3.5-122B-A10B",
         "huihui_ai/baronllm-abliterated:latest"
     ],
-    "aira-core": [
-        "koboldcpp/Qwen2.5-Coder-3B-Instruct",
-        "koboldcpp/gemma-3-270m-it-F16"
-    ],
     "aira-3-coder": [
-        "koboldcpp/Qwen2.5-Coder-3B-Instruct",
+        "wicked-tutu-26b-w8a16",
+        "koboldcpp/gemma-4-31B-it-heretic",
         "koboldcpp/Mistral-Nemo-12B-Instruct",
+        "koboldcpp/Qwen2.5-Coder-3B-Instruct",
         "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M"
     ],
-    "aira-3-ultra": [
-        "aphrodite/TheDrummer/Behemoth-128B-v3-4.25bpw-h6-exl3",
-        "Qwen/Qwen3.5-122B-A10B",
-        "google/gemma-4-31b",
-        "koboldcpp/Skyfall-31B-v4.2",
-        "koboldcpp/gemma-4-31B-it-heretic",
-        "koboldcpp/Mistral-Nemo-2407-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC",
-        "koboldcpp/Qwen3.5-9B-abliterated.Q4_K_M"
+    "aira-core": [
+        "wicked-tutu-26b-w8a16",
+        "koboldcpp/gemma-3-270m-it-F16"
     ],
     "aira-3-flash": [
-        "koboldcpp/gemma-3-270m-it-F16",
-        "koboldcpp/Qwen_Qwen3-0.6B-IQ4_XS",
-        "koboldcpp/Qwen/Qwen3.5-0.8B",
-        "koboldcpp/debug-gemma-4-E2B-Queen-it-qat-q4_0-unquantized.i1-Q4_K_M",
+        "wicked-tutu-26b-w8a16",
+        "koboldcpp/gemma-4-31B-it-heretic",
         "koboldcpp/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M"
     ],
     "aira-creative-x": [
+        "wicked-tutu-26b-w8a16",
         "koboldcpp/Rocinante-X-12B-v1",
         "koboldcpp/Rocinante-X-12B",
         "koboldcpp/L3-8B-Stheno-v3.2",
         "koboldcpp/Angelic_Eclipse-12B",
         "koboldcpp/mini-magnum-12b-v1.1"
-    ],
-    "aira-auto": [
-        "koboldcpp/Qwen2.5-Coder-3B-Instruct",
-        "koboldcpp/gemma-4-31B-it-heretic",
-        "koboldcpp/Rocinante-X-12B-v1",
-        "google/gemma-4-31b"
     ]
 }
 
@@ -227,8 +231,11 @@ def query_aira_core_local(prompt_text: str, max_tokens: int = 64) -> Optional[st
 
 def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperature: float = 0.7) -> str:
     normalized_id = normalize_model(model_id)
-    target_models = MODEL_TARGETS.get(normalized_id, MODEL_TARGETS["aira-sec"])
+    target_models = MODEL_TARGETS.get(normalized_id, MODEL_TARGETS["aira-3-ultra"])
     
+    # Ensure generous token length for rich, multi-paragraph responses
+    token_budget = max(max_tokens, 768)
+
     submit_headers = {
         "Content-Type": "application/json",
         "apikey": "0000000000",
@@ -241,11 +248,11 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
     payload = {
         "prompt": prompt_text,
         "params": {
-            "max_length": max_tokens,
+            "max_length": token_budget,
             "temperature": temperature,
             "top_p": 0.9,
-            "rep_pen": 1.18,
-            "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>", "User:"]
+            "rep_pen": 1.15,
+            "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]
         },
         "models": target_models
     }
@@ -268,7 +275,7 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
                     generations = status.get("generations", [])
                     if generations:
                         raw_text = generations[0].get("text", "").strip()
-                        for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>", "User:"]:
+                        for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]:
                             if stop_tag in raw_text:
                                 raw_text = raw_text.split(stop_tag)[0].strip()
                         raw_text = re.sub(r'([\U00010000-\U0010ffff\u2600-\u27ff\s]){5,}$', '', raw_text).strip()
@@ -280,7 +287,7 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
     open_payload = {
         "prompt": prompt_text,
         "params": {
-            "max_length": min(max_tokens, 256),
+            "max_length": token_budget,
             "temperature": temperature,
             "top_p": 0.9,
             "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]
