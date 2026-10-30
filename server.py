@@ -68,8 +68,8 @@ SYSTEM_PROMPTS = {
         CORE_SOVEREIGN_DIRECTIVE +
         "\nRole: Specialized Software Engineering, UI Architecture & Systems Code.\n"
         "Directives:\n"
-        "- When asked to build a website, web page, portfolio, or UI: jump directly into the implementation with a brief 1-line intro so your entire token budget is dedicated to the code.\n"
-        "- For HTML web apps, always include Tailwind CSS CDN (<script src=\"https://cdn.tailwindcss.com\"></script>) for compact, ultra-modern styling without writing bloated manual CSS.\n"
+        "- When asked to build a website, web page, portfolio, or UI: jump directly into the code block (```html) with at most a 1-sentence greeting.\n"
+        "- Keep <head> minimal: <meta charset=\"UTF-8\">, viewport, title, and <script src=\"https://cdn.tailwindcss.com\"></script>. NEVER write custom <style> blocks or tailwind.config scripts, as they consume tokens needlessly. Use Tailwind utility classes directly in <body> elements.\n"
         "- Write self-contained, 100% complete files from <!DOCTYPE html> down to </html>. Never truncate, omit sections, or leave code cut off in the middle."
     ),
     "aira-3-flash": (
@@ -219,6 +219,14 @@ def clean_completion_identity(text: str) -> str:
     text = re.sub(r'\{description:\s*', '', text, flags=re.IGNORECASE)
     text = re.sub(r'([^\n])(```[a-zA-Z0-9_-]*\n)', r'\1\n\n\2', text)
 
+    # Prune duplicate <!DOCTYPE html> if model restarted during generation
+    first_doc = text.lower().find("<!doctype html")
+    last_doc = text.lower().rfind("<!doctype html")
+    if first_doc != -1 and last_doc != -1 and first_doc != last_doc:
+        fence_idx = text.find("```html")
+        preamble = text[:fence_idx + 7] + "\n" if fence_idx != -1 else "```html\n"
+        text = preamble + text[last_doc:]
+
     return text.strip()
 
 def query_aira_core_local(prompt_text: str, max_tokens: int = 64) -> Optional[str]:
@@ -350,16 +358,43 @@ def query_swarm(prompt_text: str, model_id: str, max_tokens: int = 512, temperat
     if not accumulated_text or not accumulated_text.strip():
         return "Hi there! I am Aira, your personal AI co-pilot developed by Adam Eehan for Aira Group of Technology. I'm right here with you—ready to dive into whatever questions, projects, or creative ideas you have in mind. What would you like to explore together? 😊"
 
-    # Pass 2 & 3: Seamless continuation if code or markup was truncated mid-stream
+    # Multi-turn seamless continuation if code or markup was truncated mid-stream
     continuation_passes = 0
     while is_generation_incomplete(accumulated_text) and continuation_passes < 2:
         continuation_passes += 1
-        cont_prompt = prompt_text + accumulated_text
-        cont_text = query_single_pass(cont_prompt, target_models, max_length=420, temperature=temperature)
-        if cont_text and cont_text.strip():
-            accumulated_text += cont_text
-        else:
+        
+        # Clean trailing incomplete tag from accumulated_text (e.g. `<` or `<tag` without `>`)
+        lines = accumulated_text.strip().split("\n")
+        if lines and lines[-1].strip().startswith("<") and not lines[-1].strip().endswith(">"):
+            lines.pop()
+        clean_first_half = "\n".join(lines)
+
+        cont_dialogue = (
+            prompt_text + clean_first_half + "\n<|im_end|>\n"
+            "<|im_start|>user\n"
+            "Continue the HTML code seamlessly right where you stopped. Do not repeat the head, nav, or doctype. Output the remaining sections and closing tags inside ```html.\n"
+            "<|im_end|>\n"
+            "<|im_start|>assistant\n"
+        )
+        cont_text = query_single_pass(cont_dialogue, target_models, max_length=420, temperature=temperature)
+        if not cont_text or not cont_text.strip():
             break
+
+        # If model restarted completely from <!DOCTYPE html>, use the fresh version instead of gluing!
+        if "<!doctype html" in cont_text.lower():
+            accumulated_text = cont_text
+            break
+
+        # Clean duplicate fences from cont_text
+        clean_second_half = cont_text.strip()
+        if clean_second_half.startswith("```"):
+            clean_second_half = clean_second_half.split("\n", 1)[1] if "\n" in clean_second_half else ""
+        if clean_second_half.endswith("```"):
+            clean_second_half = clean_second_half.rsplit("\n", 1)[0] if "\n" in clean_second_half else ""
+
+        accumulated_text = clean_first_half + "\n" + clean_second_half
+        if not accumulated_text.strip().endswith("```"):
+            accumulated_text += "\n```"
 
     # Graceful closure if still unclosed after passes
     fences = len(re.findall(r'```', accumulated_text))
