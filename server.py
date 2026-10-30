@@ -290,82 +290,90 @@ def get_next_openrouter_key() -> str:
     return key
 
 def query_single_pass(prompt_text: str, target_models: List[str], max_length: int = 480, temperature: float = 0.7) -> Optional[str]:
-    submit_headers = {
-        "Content-Type": "application/json",
-        "apikey": AI_HORDE_API_KEY,
-        "Client-Agent": "AiraSec:1.0:admin@aira.group",
-        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36"
-    }
+    # Multi-tier Swarm Auth: Try Anonymous key first (0000000000) for unlimited free chat.
+    # If anonymous fails or hits busy worker queues, immediately failover to Adam Eehan's registered account (concurrency 30).
+    horde_keys = ["0000000000"]
+    if AI_HORDE_API_KEY and AI_HORDE_API_KEY != "0000000000":
+        horde_keys.append(AI_HORDE_API_KEY)
+
     submit_url = "https://aihorde.net/api/v2/generate/text/async"
 
-    # Step 1: Attempt targeted model dispatch
-    payload = {
-        "prompt": prompt_text,
-        "params": {
-            "max_length": max_length,
-            "temperature": temperature,
-            "top_p": 0.9,
-            "rep_pen": 1.15,
-            "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]
-        },
-        "models": target_models
-    }
-
-    try:
-        res = make_http_request(submit_url, method="POST", headers=submit_headers, data=json.dumps(payload).encode("utf-8"))
-        req_id = res.get("id")
-    except Exception:
-        req_id = None
-
-    # Step 2: Poll status with quick failover
-    if req_id:
-        status_url = f"https://aihorde.net/api/v2/generate/text/status/{req_id}"
-        start_time = time.time()
-        while time.time() - start_time < 30:
-            time.sleep(1.5)
-            try:
-                status = make_http_request(status_url, headers=submit_headers)
-                if status.get("done", False):
-                    generations = status.get("generations", [])
-                    if generations:
-                        raw_text = generations[0].get("text", "")
-                        for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]:
-                            if stop_tag in raw_text:
-                                raw_text = raw_text.split(stop_tag)[0]
-                        raw_text = re.sub(r'([\U00010000-\U0010ffff\u2600-\u27ff\s]){5,}$', '', raw_text)
-                        return raw_text
-            except Exception:
-                pass
-
-    # Step 3: Fast Failover: Open dynamic swarm dispatch
-    open_payload = {
-        "prompt": prompt_text,
-        "params": {
-            "max_length": max_length,
-            "temperature": temperature,
-            "top_p": 0.9,
-            "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]
+    for h_key in horde_keys:
+        submit_headers = {
+            "Content-Type": "application/json",
+            "apikey": h_key,
+            "Client-Agent": "AiraSec:1.0:admin@aira.group",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
-    }
-    try:
-        res_open = make_http_request(submit_url, method="POST", headers=submit_headers, data=json.dumps(open_payload).encode("utf-8"))
-        open_id = res_open.get("id")
-        if open_id:
-            open_status_url = f"https://aihorde.net/api/v2/generate/text/status/{open_id}"
-            t_open = time.time()
-            while time.time() - t_open < 20:
+
+        # Step 1: Attempt targeted model dispatch
+        payload = {
+            "prompt": prompt_text,
+            "params": {
+                "max_length": max_length,
+                "temperature": temperature,
+                "top_p": 0.9,
+                "rep_pen": 1.15,
+                "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]
+            },
+            "models": target_models
+        }
+
+        try:
+            res = make_http_request(submit_url, method="POST", headers=submit_headers, data=json.dumps(payload).encode("utf-8"))
+            req_id = res.get("id")
+        except Exception:
+            req_id = None
+
+        # Step 2: Poll status with quick failover
+        if req_id:
+            status_url = f"https://aihorde.net/api/v2/generate/text/status/{req_id}"
+            start_time = time.time()
+            while time.time() - start_time < 25:
                 time.sleep(1.5)
-                ostatus = make_http_request(open_status_url, headers=submit_headers)
-                if ostatus.get("done", False):
-                    gens = ostatus.get("generations", [])
-                    if gens:
-                        raw_text = gens[0].get("text", "")
-                        for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]:
-                            if stop_tag in raw_text:
-                                raw_text = raw_text.split(stop_tag)[0]
-                        return raw_text
-    except Exception:
-        pass
+                try:
+                    status = make_http_request(status_url, headers=submit_headers)
+                    if status.get("done", False):
+                        generations = status.get("generations", [])
+                        if generations:
+                            raw_text = generations[0].get("text", "")
+                            for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]:
+                                if stop_tag in raw_text:
+                                    raw_text = raw_text.split(stop_tag)[0]
+                            raw_text = re.sub(r'([\U00010000-\U0010ffff\u2600-\u27ff\s]){5,}$', '', raw_text)
+                            return raw_text
+                except Exception:
+                    pass
+
+        # Step 3: Fast Failover: Open dynamic swarm dispatch
+        open_payload = {
+            "prompt": prompt_text,
+            "params": {
+                "max_length": max_length,
+                "temperature": temperature,
+                "top_p": 0.9,
+                "stop_sequence": ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]
+            }
+        }
+        try:
+            res_open = make_http_request(submit_url, method="POST", headers=submit_headers, data=json.dumps(open_payload).encode("utf-8"))
+            open_id = res_open.get("id")
+            if open_id:
+                open_status_url = f"https://aihorde.net/api/v2/generate/text/status/{open_id}"
+                t_open = time.time()
+                while time.time() - t_open < 18:
+                    time.sleep(1.5)
+                    ostatus = make_http_request(open_status_url, headers=submit_headers)
+                    if ostatus.get("done", False):
+                        gens = ostatus.get("generations", [])
+                        if gens:
+                            raw_text = gens[0].get("text", "")
+                            for stop_tag in ["\nUser:", "\nHuman:", "\nSystem:", "\nAssistant:", "<|im_end|>", "<|endoftext|>"]:
+                                if stop_tag in raw_text:
+                                    raw_text = raw_text.split(stop_tag)[0]
+                            return raw_text
+        except Exception:
+            pass
 
     return None
 
@@ -1177,14 +1185,27 @@ print(response.choices[0].message.content)</code></pre>
 
             completion_text = None
 
+            # Detect coding, algorithmic, and complex engineering requests
+            is_coding_query = (
+                model == "aira-3-coder" or
+                any(k in last_user_prompt.lower() for k in [
+                    "code", "html", "website", "python", "script", "app", "function",
+                    "portfolio", "css", "component", "react", "program", "draw", "triangle",
+                    "algorithm", "backend", "frontend", "api", "database", "sql", "bug", "fix",
+                    "class", "def ", "import ", "javascript", "typescript", "c++", "rust", "java",
+                    "solve", "math", "derive", "proof", "debug", "refactor"
+                ])
+            )
+
             # Tier 1: Native aira-core local SIMD execution if explicitly targeted or requested
             if model == "aira-core" and last_user_prompt:
                 local_res = query_aira_core_local(last_user_prompt, max_tokens=min(max_tokens, 64))
                 if local_res:
                     completion_text = local_res
 
-            # Tier 2: OpenRouter Free Swarm Mesh (4,096 tokens) if API key configured
-            if not completion_text:
+            # Tier 2: OpenRouter Free Swarm Mesh (4,096 tokens) strictly for coding / complex tasks
+            # This preserves OpenRouter's 150 daily requests exclusively for heavy projects!
+            if not completion_text and is_coding_query:
                 try:
                     or_res = query_openrouter_free(messages, max_tokens=max_tokens, model=model)
                     if or_res:
@@ -1192,16 +1213,7 @@ print(response.choices[0].message.content)</code></pre>
                 except Exception:
                     pass
 
-            # Tier 3: High-Capacity Zero-Key Coding Engine for aira-3-coder or coding queries (up to 2048 tokens)
-            is_coding_query = (
-                model == "aira-3-coder" or
-                any(k in last_user_prompt.lower() for k in [
-                    "code", "html", "website", "python", "script", "app", "function",
-                    "portfolio", "css", "component", "react", "program", "draw", "triangle",
-                    "algorithm", "backend", "frontend", "api", "database", "sql"
-                ])
-            )
-
+            # Tier 3: High-Capacity Zero-Key Coding Engine if OpenRouter hits quota
             if not completion_text and is_coding_query:
                 try:
                     poll_res = query_pollinations(messages, max_tokens=max_tokens, model=model)
@@ -1210,7 +1222,8 @@ print(response.choices[0].message.content)</code></pre>
                 except Exception:
                     pass
 
-            # Tier 4: Decentralized Sovereign Swarm Engine (AI Horde with Adam Eehan Key & multi-turn continuation)
+            # Tier 4: Decentralized Sovereign Swarm Engine (AI Horde with Anonymous -> Adam Eehan Key failover)
+            # Used for general conversation and as deep fallback for code
             if not completion_text:
                 system_prompt = SYSTEM_PROMPTS.get(model, SYSTEM_PROMPTS["aira-sec"])
                 formatted_dialogue = [f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n"]
@@ -1233,8 +1246,20 @@ print(response.choices[0].message.content)</code></pre>
                         max_tokens=max_tokens,
                         temperature=temperature
                     )
-                except Exception as se:
-                    completion_text = "Hi! I am Aira, developed by Adam Eehan for Aira Group of Technology. I'm right here with you—ready to help with anything you need! What shall we work on today? 😊"
+                except Exception:
+                    pass
+
+            # Tier 5: Emergency Zero-Key Fallback if swarm has temporary outage for general chat
+            if not completion_text or not completion_text.strip():
+                try:
+                    poll_res = query_pollinations(messages, max_tokens=min(max_tokens, 512), model=model)
+                    if poll_res:
+                        completion_text = poll_res
+                except Exception:
+                    pass
+
+            if not completion_text or not completion_text.strip():
+                completion_text = "Hi! I am Aira, developed by Adam Eehan for Aira Group of Technology. I'm right here with you—ready to help with anything you need! What shall we work on today? 😊"
 
             # Return Standard OpenAI Response
             response_payload = {
